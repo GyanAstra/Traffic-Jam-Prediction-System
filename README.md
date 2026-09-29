@@ -1,6 +1,6 @@
 # 🚦 Traffic Jam Prediction Using Recurrent Neural Networks (RNN)
 
-> **College Mini Project** | AI with Python Training | Python 3.12 · TensorFlow · Flask · Chart.js
+> Deep Learning Traffic Forecasting System | Python 3.12 · TensorFlow · Flask · Chart.js
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://python.org)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.17-orange?logo=tensorflow)](https://tensorflow.org)
@@ -253,12 +253,7 @@ Dense(3, softmax)  →  [Low, Medium, High]
 
 ---
 
-## 👨‍💻 Team
-
-> *College Mini Project — AI with Python (3-month training)*
-
----
-
 ## 📄 License
 
 MIT License — free to use for educational purposes.
+
