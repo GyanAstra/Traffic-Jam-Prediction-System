@@ -3,7 +3,8 @@ build_gyanastra_report_docx.py
 ==============================
 Generates a comprehensive, professional, IEEE-standard project report (.docx)
 for the Traffic Jam Prediction System Using Recurrent Neural Networks (RNN)
-by GyanAstra Technologies, exactly following the structural format of the template.
+by GyanAstra Technologies, exactly following the structural format of the template,
+with official GyanAstra branding, native Microsoft Word OMML equations, and high-res formula graphics.
 """
 
 import os
@@ -11,20 +12,22 @@ import docx
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
-from docx.oxml import OxmlElement
+from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
-COLOR_ORANGE    = RGBColor(0xE8, 0x73, 0x0A)   # #E8730A (Brand accent)
-COLOR_NAVY      = RGBColor(0x1F, 0x2A, 0x44)   # #1F2A44 (Primary headers)
-COLOR_BLUE      = RGBColor(0x2E, 0x74, 0xB5)   # #2E74B5 (Secondary headers)
-COLOR_BODY      = RGBColor(0x22, 0x22, 0x22)   # #222222 (Body text)
-COLOR_MUTED     = RGBColor(0x59, 0x59, 0x59)   # #595959 (Subtitles / metadata)
+# ── Official GyanAstra Color Palette ───────────────────────────────────────────
+# Extracted directly from the official GyanAstra Technologies logo
+COLOR_PRIMARY   = RGBColor(0x01, 0xAA, 0xB1)   # #01AAB1 (Official GyanAstra Vibrant Teal)
+COLOR_DARK_TEAL = RGBColor(0x0A, 0x36, 0x41)   # #0A3641 (Primary Deep Petrol Teal)
+COLOR_ACCENT    = RGBColor(0x00, 0x8C, 0x95)   # #008C95 (Secondary Accent Teal)
+COLOR_BODY      = RGBColor(0x1F, 0x29, 0x37)   # #1F2937 (Slate Body Text)
+COLOR_MUTED     = RGBColor(0x64, 0x74, 0x8B)   # #64748B (Muted Subtitles / Metadata)
 
-HEX_NAVY        = "1F2A44"
-HEX_LIGHT_BLUE  = "E8F1F8"
-HEX_LIGHT_GRAY  = "F4F5F7"
-HEX_BORDER      = "D1D5DB"
+HEX_PRIMARY     = "01AAB1"
+HEX_DARK_TEAL   = "0A3641"
+HEX_LIGHT_TEAL  = "E8F7F8"
+HEX_LIGHT_ROW   = "F4FAFA"
+HEX_BORDER      = "C2E3E6"
 
 def set_cell_background(cell, hex_color):
     tcPr = cell._tc.get_or_add_tcPr()
@@ -34,7 +37,7 @@ def set_cell_background(cell, hex_color):
     shd.set(qn('w:fill'), hex_color)
     tcPr.append(shd)
 
-def set_table_borders(table, color="D1D5DB", sz="4", val="single"):
+def set_table_borders(table, color="C2E3E6", sz="4", val="single"):
     tblPr = table._tbl.tblPr
     tblBorders = OxmlElement('w:tblBorders')
     for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
@@ -65,7 +68,7 @@ def add_styled_table(doc, headers, data, col_widths=None):
     hdr_cells = table.rows[0].cells
     for i, title in enumerate(headers):
         hdr_cells[i].text = title
-        set_cell_background(hdr_cells[i], HEX_NAVY)
+        set_cell_background(hdr_cells[i], HEX_DARK_TEAL)
         set_cell_margins(hdr_cells[i], top=140, bottom=140, left=180, right=180)
         p = hdr_cells[i].paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -77,7 +80,7 @@ def add_styled_table(doc, headers, data, col_widths=None):
     # Data Rows
     for r_idx, row in enumerate(data):
         row_cells = table.rows[r_idx + 1].cells
-        bg_col = HEX_LIGHT_GRAY if r_idx % 2 == 1 else "FFFFFF"
+        bg_col = HEX_LIGHT_ROW if r_idx % 2 == 1 else "FFFFFF"
         for c_idx, val in enumerate(row):
             row_cells[c_idx].text = str(val)
             set_cell_background(row_cells[c_idx], bg_col)
@@ -106,7 +109,7 @@ def add_heading_1(doc, text):
     r.font.name = "Calibri"
     r.font.size = Pt(15)
     r.font.bold = True
-    r.font.color.rgb = COLOR_NAVY
+    r.font.color.rgb = COLOR_DARK_TEAL
     return h
 
 def add_heading_2(doc, text):
@@ -118,7 +121,7 @@ def add_heading_2(doc, text):
     r.font.name = "Calibri"
     r.font.size = Pt(12.5)
     r.font.bold = True
-    r.font.color.rgb = COLOR_BLUE
+    r.font.color.rgb = COLOR_ACCENT
     return h
 
 def add_heading_3(doc, text):
@@ -130,7 +133,7 @@ def add_heading_3(doc, text):
     r.font.name = "Calibri"
     r.font.size = Pt(11)
     r.font.bold = True
-    r.font.color.rgb = COLOR_NAVY
+    r.font.color.rgb = COLOR_DARK_TEAL
     return h
 
 def add_body_p(doc, text, bold_prefix=None):
@@ -184,12 +187,52 @@ def add_image_figure(doc, img_path, caption, width=5.5):
         r_cap.font.italic = True
         r_cap.font.color.rgb = COLOR_MUTED
 
+def add_math_equation(doc, omml_body, eq_label=None, img_path=None, img_width=3.2):
+    """
+    Inserts a native Microsoft Word Equation (OMML) and an accompanying
+    high-resolution rendered formula graphic for maximum cross-platform fidelity.
+    """
+    eq_xml = (
+        f'<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">'
+        f'<m:oMath>{omml_body}</m:oMath>'
+        f'</m:oMathPara>'
+    )
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(2)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    try:
+        elem = parse_xml(eq_xml)
+        p._p.addnext(elem)
+    except Exception as e:
+        print(f"OMML parse warning: {e}")
+
+    # Companion high-resolution formula figure
+    if img_path and os.path.exists(img_path):
+        p_img = doc.add_paragraph()
+        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img.paragraph_format.space_before = Pt(3)
+        p_img.paragraph_format.space_after = Pt(2)
+        run_img = p_img.add_run()
+        run_img.add_picture(img_path, width=Inches(img_width))
+
+    # Equation number tag
+    if eq_label:
+        p_lbl = doc.add_paragraph()
+        p_lbl.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        p_lbl.paragraph_format.space_after = Pt(8)
+        r_lbl = p_lbl.add_run(f"({eq_label})")
+        r_lbl.font.name = "Calibri"
+        r_lbl.font.size = Pt(9.5)
+        r_lbl.font.italic = True
+        r_lbl.font.color.rgb = COLOR_MUTED
+
 # ── Main Document Construction ────────────────────────────────────────────────
 def build_report():
     print("[*] Creating GyanAstra Technologies Project Report (.docx) ...")
     doc = docx.Document()
 
-    # Page Margins (approx 0.83 inch)
+    # Page Margins (approx 0.8 inch)
     for section in doc.sections:
         section.top_margin = Inches(0.8)
         section.bottom_margin = Inches(0.8)
@@ -199,28 +242,41 @@ def build_report():
     # ═════════════════════════════════════════════════════════════════════════
     # COVER PAGE
     # ═════════════════════════════════════════════════════════════════════════
-    p_org = doc.add_paragraph()
-    p_org.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_org.paragraph_format.space_before = Pt(20)
-    p_org.paragraph_format.space_after = Pt(2)
-    r1 = p_org.add_run("GYANASTRA TECHNOLOGIES")
-    r1.font.name = "Calibri"
-    r1.font.size = Pt(22)
-    r1.font.bold = True
-    r1.font.color.rgb = COLOR_ORANGE
+    # Official GyanAstra Logo on Cover Page
+    logo_path = "report/gyanastra_logo_teal_text.png"
+    if not os.path.exists(logo_path):
+        logo_path = "report/gyanastra_logo_orig.png"
+
+    if os.path.exists(logo_path):
+        p_logo = doc.add_paragraph()
+        p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_logo.paragraph_format.space_before = Pt(24)
+        p_logo.paragraph_format.space_after = Pt(10)
+        run_logo = p_logo.add_run()
+        run_logo.add_picture(logo_path, width=Inches(3.8))
+    else:
+        p_org = doc.add_paragraph()
+        p_org.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_org.paragraph_format.space_before = Pt(24)
+        p_org.paragraph_format.space_after = Pt(2)
+        r1 = p_org.add_run("GYANASTRA TECHNOLOGIES")
+        r1.font.name = "Calibri"
+        r1.font.size = Pt(22)
+        r1.font.bold = True
+        r1.font.color.rgb = COLOR_PRIMARY
 
     p_tag = doc.add_paragraph()
     p_tag.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_tag.paragraph_format.space_after = Pt(4)
+    p_tag.paragraph_format.space_after = Pt(2)
     r2 = p_tag.add_run("EMPOWERING INTELLIGENCE, DELIVERING INNOVATION")
     r2.font.name = "Calibri"
     r2.font.size = Pt(9.5)
     r2.font.bold = True
-    r2.font.color.rgb = COLOR_NAVY
+    r2.font.color.rgb = COLOR_DARK_TEAL
 
     p_sub = doc.add_paragraph()
     p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_sub.paragraph_format.space_after = Pt(40)
+    p_sub.paragraph_format.space_after = Pt(36)
     r3 = p_sub.add_run("GyanAstra Technologies Pvt Ltd")
     r3.font.name = "Calibri"
     r3.font.size = Pt(11)
@@ -234,7 +290,7 @@ def build_report():
     r4.font.name = "Calibri"
     r4.font.size = Pt(22)
     r4.font.bold = True
-    r4.font.color.rgb = COLOR_NAVY
+    r4.font.color.rgb = COLOR_DARK_TEAL
 
     p_on = doc.add_paragraph()
     p_on.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -252,16 +308,16 @@ def build_report():
     r6.font.name = "Calibri"
     r6.font.size = Pt(20)
     r6.font.bold = True
-    r6.font.color.rgb = COLOR_ORANGE
+    r6.font.color.rgb = COLOR_PRIMARY
 
     p_tech = doc.add_paragraph()
     p_tech.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_tech.paragraph_format.space_after = Pt(45)
+    p_tech.paragraph_format.space_after = Pt(40)
     r7 = p_tech.add_run("Using Recurrent Neural Networks (RNN) & Deep Learning")
     r7.font.name = "Calibri"
     r7.font.size = Pt(12)
     r7.font.bold = True
-    r7.font.color.rgb = COLOR_NAVY
+    r7.font.color.rgb = COLOR_DARK_TEAL
 
     # Cover Table
     table0 = doc.add_table(rows=7, cols=2)
@@ -284,14 +340,14 @@ def build_report():
         row.cells[1].text = val
         row.cells[0].width = Inches(2.2)
         row.cells[1].width = Inches(4.2)
-        set_cell_background(row.cells[0], HEX_LIGHT_BLUE)
+        set_cell_background(row.cells[0], HEX_LIGHT_TEAL)
         set_cell_margins(row.cells[0], top=100, bottom=100, left=160, right=160)
         set_cell_margins(row.cells[1], top=100, bottom=100, left=160, right=160)
         p0 = row.cells[0].paragraphs[0]
         p1 = row.cells[1].paragraphs[0]
         p0.runs[0].font.bold = True
         p0.runs[0].font.size = Pt(10)
-        p0.runs[0].font.color.rgb = COLOR_NAVY
+        p0.runs[0].font.color.rgb = COLOR_DARK_TEAL
         p1.runs[0].font.size = Pt(10)
         p1.runs[0].font.color.rgb = COLOR_BODY
 
@@ -317,7 +373,7 @@ def build_report():
     p_cert_sign.paragraph_format.space_after = Pt(4)
     r = p_cert_sign.add_run("Project Mentor / Lead AI Engineer\t\t\tAuthorized Signatory")
     r.font.bold = True
-    r.font.color.rgb = COLOR_NAVY
+    r.font.color.rgb = COLOR_DARK_TEAL
 
     p_cert_org = doc.add_paragraph()
     p_cert_org.paragraph_format.space_after = Pt(20)
@@ -391,24 +447,26 @@ def build_report():
         ("    4.2 Software Requirements", "7"),
         ("5. Dataset & Feature Engineering — Detailed Description", "8"),
         ("    5.1 Metro Interstate Traffic Volume Dataset", "8"),
-        ("    5.2 Diurnal Temporal Dynamics (Hour of Day)", "9"),
-        ("    5.3 Weekly Cyclic Variations & Weekend Factor", "9"),
+        ("    5.2 Feature Standardization & Z-Score Normalization", "9"),
+        ("    5.3 Diurnal Temporal Dynamics & Weekly Cycles", "9"),
         ("    5.4 Meteorological Classifications & Adverse Weather", "10"),
-        ("    5.5 Thermal & Precipitation Sensors", "10"),
-        ("    5.6 Public Holiday Congestion Dampening", "11"),
-        ("    5.7 Congestion Severity Thresholds", "11"),
+        ("    5.5 Public Holiday & Severity Thresholds", "11"),
         ("6. System Architecture & Pipeline", "12"),
         ("7. Block Diagram & Workflow", "13"),
         ("8. Working / Methodology", "14"),
-        ("9. Software Implementation & RNN Model Code", "15"),
-        ("10. Key Features of the System", "16"),
-        ("11. Real-World Applications", "17"),
-        ("12. Advantages and Limitations", "18"),
-        ("13. Future Scope", "18"),
-        ("14. Testing and Results", "19"),
-        ("15. Project Dashboard & User Interface", "20"),
-        ("16. Conclusion", "21"),
-        ("17. References", "21"),
+        ("    8.1 Phase 1 & 2: Feature Engineering & Sliding Window", "14"),
+        ("    8.2 Phase 3: Recurrent Cell Computations & OMML Math", "14"),
+        ("    8.3 Phase 4: Regularization & Softmax Probability", "15"),
+        ("    8.4 Phase 5: REST API Inference & UI Deployment", "15"),
+        ("9. Software Implementation & RNN Model Code", "16"),
+        ("10. Key Features of the System", "17"),
+        ("11. Real-World Applications", "18"),
+        ("12. Advantages and Limitations", "19"),
+        ("13. Future Scope", "19"),
+        ("14. Testing and Results", "20"),
+        ("15. Project Dashboard & User Interface", "21"),
+        ("16. Conclusion", "22"),
+        ("17. References", "22"),
     ]
     for title, pg in toc_data:
         p_toc = doc.add_paragraph()
@@ -416,7 +474,7 @@ def build_report():
         r_t = p_toc.add_run(f"{title}")
         r_t.font.name = "Calibri"
         r_t.font.size = Pt(10.5)
-        r_t.font.color.rgb = COLOR_NAVY if not title.startswith(" ") else COLOR_BODY
+        r_t.font.color.rgb = COLOR_DARK_TEAL if not title.startswith(" ") else COLOR_BODY
         r_dots = p_toc.add_run(f"\t{pg}")
         r_dots.font.name = "Calibri"
         r_dots.font.size = Pt(10.5)
@@ -550,6 +608,28 @@ def build_report():
     ]
     add_styled_table(doc, feat_headers, feat_data, col_widths=[1.5, 1.0, 1.5, 2.5])
 
+    add_heading_2(doc, "5.2 Feature Normalization & Standardization")
+    add_body_p(doc,
+        "Because input features possess wildly varying physical scales—ranging from binary indicators [0, 1] to ambient temperatures "
+        "[-30°C, +40°C] and cloud cover [0%, 100%]—standardization is necessary to ensure uniform gradient propagation and prevent high-magnitude "
+        "features from dominating neural weight updates. Each continuous feature x is standardized to zero mean and unit variance using the Z-Score transform:"
+    )
+
+    # OMML Math: Z-Score Normalization
+    omml_zscore = (
+        '<m:r><m:t>z = </m:t></m:r>'
+        '<m:f>'
+        '<m:num><m:r><m:t>x - μ</m:t></m:r></m:num>'
+        '<m:den><m:r><m:t>σ</m:t></m:r></m:den>'
+        '</m:f>'
+    )
+    add_math_equation(doc, omml_zscore, eq_label="Eq. 5.1", img_path="graphs/equations/eq_zscore.png", img_width=1.8)
+
+    add_body_p(doc,
+        "where μ denotes the empirical sample mean and σ represents the standard deviation calculated across the training distribution. "
+        "During live inference, incoming user parameters are transformed using the exact fitted scaler parameters (scaler.pkl) before sequence padding."
+    )
+
     doc.add_page_break()
 
     # ═════════════════════════════════════════════════════════════════════════
@@ -579,7 +659,6 @@ def build_report():
 
     doc.add_page_break()
 
-
     # ═════════════════════════════════════════════════════════════════════════
     # 8. WORKING / METHODOLOGY
     # ═════════════════════════════════════════════════════════════════════════
@@ -605,10 +684,33 @@ def build_report():
 
     add_heading_2(doc, "Phase 3: Recurrent Cell Computations")
     add_body_p(doc,
-        "Within each SimpleRNN cell, the hidden state h_t at timestep t is computed from the current input x_t and the prior hidden state h_(t-1):\n"
-        "    h_t = tanh(W_ih · x_t + b_ih + W_hh · h_(t-1) + b_hh)\n"
-        "Here, W_ih represents the input-to-hidden weight matrix, W_hh represents the hidden-to-hidden recurrence matrix, and tanh squashes "
-        "activations into [-1, 1], maintaining gradient stability. Layer 1 returns full sequence states (return_sequences=True), which Layer 2 "
+        "Within each SimpleRNN cell, the hidden state vector h_t at timestep t is computed as a non-linear combination of the current input vector x_t "
+        "and the preceding hidden state vector h_(t-1). The recurrent activation equation is defined as:"
+    )
+
+    # OMML Math: SimpleRNN Hidden State
+    omml_rnn = (
+        '<m:sSub><m:e><m:r><m:t>h</m:t></m:r></m:e><m:sub><m:r><m:t>t</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> = tanh(</m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>W</m:t></m:r></m:e><m:sub><m:r><m:t>ih</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> · </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sub><m:r><m:t>t</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> + </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>b</m:t></m:r></m:e><m:sub><m:r><m:t>ih</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> + </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>W</m:t></m:r></m:e><m:sub><m:r><m:t>hh</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> · </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>h</m:t></m:r></m:e><m:sub><m:r><m:t>t-1</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> + </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>b</m:t></m:r></m:e><m:sub><m:r><m:t>hh</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t>)</m:t></m:r>'
+    )
+    add_math_equation(doc, omml_rnn, eq_label="Eq. 8.1", img_path="graphs/equations/eq_rnn_cell.png", img_width=3.6)
+
+    add_body_p(doc,
+        "Here, W_ih represents the input-to-hidden weight matrix, W_hh represents the hidden-to-hidden recurrence matrix, "
+        "and b_ih, b_hh are bias vectors. The hyperbolic tangent function squashes activations into [-1, 1], maintaining gradient "
+        "stability across sequence steps. Layer 1 returns full sequence states (return_sequences=True), which Layer 2 "
         "condenses into a 32-dimensional summary vector."
     )
 
@@ -616,8 +718,39 @@ def build_report():
     add_body_p(doc,
         "To prevent overfitting to dominant non-congestion hours, Dropout layers randomly zero out 20% of neuron connections during training. "
         "The condensed 32-unit vector passes through a 16-unit ReLU dense layer for non-linear feature combination. Finally, a 3-unit Softmax head "
-        "computes class probabilities: P(y = c | X) = exp(z_c) / Σ exp(z_j)."
+        "computes normalized class probability distribution:"
     )
+
+    # OMML Math: Softmax Probability
+    omml_softmax = (
+        '<m:r><m:t>P(y = c | X) = </m:t></m:r>'
+        '<m:f>'
+        '<m:num>'
+        '<m:sSup><m:e><m:r><m:t>e</m:t></m:r></m:e><m:sup><m:sSub><m:e><m:r><m:t>z</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub></m:sup></m:sSup>'
+        '</m:num>'
+        '<m:den>'
+        '<m:d><m:e>'
+        '<m:r><m:t>Σ </m:t></m:r>'
+        '<m:sSup><m:e><m:r><m:t>e</m:t></m:r></m:e><m:sup><m:sSub><m:e><m:r><m:t>z</m:t></m:r></m:e><m:sub><m:r><m:t>j</m:t></m:r></m:sub></m:sSub></m:sup></m:sSup>'
+        '</m:e></m:d>'
+        '</m:den>'
+        '</m:f>'
+    )
+    add_math_equation(doc, omml_softmax, eq_label="Eq. 8.2", img_path="graphs/equations/eq_softmax.png", img_width=2.5)
+
+    add_body_p(doc,
+        "The network parameters are optimized using Categorical Cross-Entropy Loss (L) over all C = 3 congestion classes:"
+    )
+
+    # OMML Math: Loss Function
+    omml_loss = (
+        '<m:r><m:t>L = - Σ </m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>y</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t> · log(</m:t></m:r>'
+        '<m:sSub><m:e><m:r><m:t>ŷ</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub>'
+        '<m:r><m:t>)</m:t></m:r>'
+    )
+    add_math_equation(doc, omml_loss, eq_label="Eq. 8.3", img_path="graphs/equations/eq_loss.png", img_width=2.2)
 
     add_heading_2(doc, "Phase 5: Real-Time API Inference & Client Rendering")
     add_body_p(doc,
@@ -659,14 +792,13 @@ def build_report():
     p_code = doc.add_paragraph()
     p_code.paragraph_format.space_before = Pt(6)
     p_code.paragraph_format.space_after = Pt(10)
-    set_cell_background(doc.add_table(rows=1, cols=1).rows[0].cells[0], "F8F9FA")
-    # Clean code box
+    set_cell_background(doc.add_table(rows=1, cols=1).rows[0].cells[0], "F4FAFA")
     c_p = doc.tables[-1].rows[0].cells[0].paragraphs[0]
     r_c = c_p.add_run(code_snippet)
     r_c.font.name = "Consolas"
     r_c.font.size = Pt(9)
-    r_c.font.color.rgb = COLOR_NAVY
-    set_table_borders(doc.tables[-1], "E0E0E0")
+    r_c.font.color.rgb = COLOR_DARK_TEAL
+    set_table_borders(doc.tables[-1], HEX_BORDER)
 
     add_heading_2(doc, "9.1 Hyperparameter Specifications")
     hp_headers = ["Hyperparameter", "Configured Value", "Technical Rationale"]
@@ -741,6 +873,35 @@ def build_report():
         "Evaluation metrics include Classification Accuracy, Categorical Crossentropy Loss, Precision, Recall, and F1-Score."
     )
 
+    # Evaluation Metric Formulas
+    add_heading_2(doc, "14.1 Mathematical Evaluation Metrics")
+    add_body_p(doc,
+        "Classification Accuracy measures the proportion of total correct congestion category predictions across all classes:"
+    )
+
+    omml_acc = (
+        '<m:r><m:t>Accuracy = </m:t></m:r>'
+        '<m:f>'
+        '<m:num><m:r><m:t>TP + TN</m:t></m:r></m:num>'
+        '<m:den><m:r><m:t>TP + TN + FP + FN</m:t></m:r></m:den>'
+        '</m:f>'
+    )
+    add_math_equation(doc, omml_acc, eq_label="Eq. 14.1", img_path="graphs/equations/eq_accuracy.png", img_width=2.5)
+
+    add_body_p(doc,
+        "The harmonic mean between Precision and Recall is quantified using the macro F1-Score:"
+    )
+
+    omml_f1 = (
+        '<m:r><m:t>F1-Score = 2 · </m:t></m:r>'
+        '<m:f>'
+        '<m:num><m:r><m:t>Precision · Recall</m:t></m:r></m:num>'
+        '<m:den><m:r><m:t>Precision + Recall</m:t></m:r></m:den>'
+        '</m:f>'
+    )
+    add_math_equation(doc, omml_f1, eq_label="Eq. 14.2", img_path="graphs/equations/eq_f1.png", img_width=2.8)
+
+    add_heading_2(doc, "14.2 Classification Performance Summary")
     res_headers = ["Congestion Class", "Precision", "Recall", "F1-Score", "Support"]
     res_data = [
         ["Low Traffic (🟢)", "0.94", "0.92", "0.93", "2,840"],
