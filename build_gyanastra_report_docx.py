@@ -568,50 +568,17 @@ def build_report():
     # 7. BLOCK DIAGRAM & WORKFLOW
     # ═════════════════════════════════════════════════════════════════════════
     add_heading_1(doc, "7. Block Diagram & Workflow")
-    add_body_p(doc, "The high-level dataflow and computational block diagram is illustrated below:")
-
-    block_text = (
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │   I-94 Interstate Sensor Telemetry (48,204 Records)   │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ Feature Engineering: Hour, Day, Month, Weather, Rain   │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ StandardScaler Normalization: z = (x - μ) / σ          │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ 24-Hour Sliding Window Sequence: Tensor (N, 24, 9)     │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ Stacked SimpleRNN (64 Units) → Dropout(0.2)           │\n"
-        "  │ SimpleRNN (32 Units) → Dropout(0.2) → Dense(16, ReLU)  │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ Softmax Classification: Low (🟢) | Med (🟡) | High (🔴)  │\n"
-        "  └───────────────────────────┬────────────────────────────┘\n"
-        "                              ▼\n"
-        "  ┌────────────────────────────────────────────────────────┐\n"
-        "  │ Flask REST API Backend  ⇄  Warm Light Web Dashboard   │\n"
-        "  └────────────────────────────────────────────────────────┘"
+    add_body_p(doc, 
+        "The high-level end-to-end dataflow and computational architecture of the Traffic Jam Prediction System "
+        "is illustrated in Fig 7.1 below, detailing the progressive transformation from raw highway sensor telemetry "
+        "through multi-modal feature engineering, 24-hour sliding sequence tensor construction, recurrent neural network processing, "
+        "and client-facing web application deployment:"
     )
-    p_box = doc.add_paragraph()
-    p_box.paragraph_format.space_before = Pt(8)
-    p_box.paragraph_format.space_after = Pt(8)
-    p_box.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_box = p_box.add_run(block_text)
-    r_box.font.name = "Courier New"
-    r_box.font.size = Pt(8.5)
-    r_box.font.color.rgb = COLOR_NAVY
 
-    add_body_p(doc, "Fig 7.1: Architectural block diagram of the Traffic Jam Prediction RNN system.")
+    add_image_figure(doc, "graphs/block_diagram.png", "Fig 7.1: Architectural block diagram of the Traffic Jam Prediction RNN system.", width=5.6)
 
     doc.add_page_break()
+
 
     # ═════════════════════════════════════════════════════════════════════════
     # 8. WORKING / METHODOLOGY
