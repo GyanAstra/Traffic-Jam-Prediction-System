@@ -12,7 +12,7 @@ import docx
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
-from docx.oxml import OxmlElement, parse_xml
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 # ── Official GyanAstra Color Palette ───────────────────────────────────────────
@@ -187,40 +187,24 @@ def add_image_figure(doc, img_path, caption, width=5.5):
         r_cap.font.italic = True
         r_cap.font.color.rgb = COLOR_MUTED
 
-def add_math_equation(doc, omml_body, eq_label=None, img_path=None, img_width=3.2):
+def add_math_equation(doc, eq_label=None, img_path=None, img_width=3.2):
     """
-    Inserts a native Microsoft Word Equation (OMML) and an accompanying
-    high-resolution rendered formula graphic for maximum cross-platform fidelity.
+    Inserts a high-resolution, publication-quality rendered mathematical formula
+    with standard centered equation alignment and formal right-aligned equation numbering.
+    Avoids corrupting Word OpenXML schema with malformed OMML tags.
     """
-    eq_xml = (
-        f'<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">'
-        f'<m:oMath>{omml_body}</m:oMath>'
-        f'</m:oMathPara>'
-    )
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(6)
-    p.paragraph_format.space_after = Pt(2)
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    try:
-        elem = parse_xml(eq_xml)
-        p._p.addnext(elem)
-    except Exception as e:
-        print(f"OMML parse warning: {e}")
-
-    # Companion high-resolution formula figure
     if img_path and os.path.exists(img_path):
         p_img = doc.add_paragraph()
         p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_img.paragraph_format.space_before = Pt(3)
+        p_img.paragraph_format.space_before = Pt(8)
         p_img.paragraph_format.space_after = Pt(2)
         run_img = p_img.add_run()
         run_img.add_picture(img_path, width=Inches(img_width))
 
-    # Equation number tag
     if eq_label:
         p_lbl = doc.add_paragraph()
         p_lbl.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        p_lbl.paragraph_format.space_after = Pt(8)
+        p_lbl.paragraph_format.space_after = Pt(10)
         r_lbl = p_lbl.add_run(f"({eq_label})")
         r_lbl.font.name = "Calibri"
         r_lbl.font.size = Pt(9.5)
@@ -615,15 +599,7 @@ def build_report():
         "features from dominating neural weight updates. Each continuous feature x is standardized to zero mean and unit variance using the Z-Score transform:"
     )
 
-    # OMML Math: Z-Score Normalization
-    omml_zscore = (
-        '<m:r><m:t>z = </m:t></m:r>'
-        '<m:f>'
-        '<m:num><m:r><m:t>x - μ</m:t></m:r></m:num>'
-        '<m:den><m:r><m:t>σ</m:t></m:r></m:den>'
-        '</m:f>'
-    )
-    add_math_equation(doc, omml_zscore, eq_label="Eq. 5.1", img_path="graphs/equations/eq_zscore.png", img_width=1.8)
+    add_math_equation(doc, eq_label="Eq. 5.1", img_path="graphs/equations/eq_zscore.png", img_width=2.0)
 
     add_body_p(doc,
         "where μ denotes the empirical sample mean and σ represents the standard deviation calculated across the training distribution. "
@@ -688,24 +664,7 @@ def build_report():
         "and the preceding hidden state vector h_(t-1). The recurrent activation equation is defined as:"
     )
 
-    # OMML Math: SimpleRNN Hidden State
-    omml_rnn = (
-        '<m:sSub><m:e><m:r><m:t>h</m:t></m:r></m:e><m:sub><m:r><m:t>t</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> = tanh(</m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>W</m:t></m:r></m:e><m:sub><m:r><m:t>ih</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> · </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sub><m:r><m:t>t</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> + </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>b</m:t></m:r></m:e><m:sub><m:r><m:t>ih</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> + </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>W</m:t></m:r></m:e><m:sub><m:r><m:t>hh</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> · </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>h</m:t></m:r></m:e><m:sub><m:r><m:t>t-1</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> + </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>b</m:t></m:r></m:e><m:sub><m:r><m:t>hh</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t>)</m:t></m:r>'
-    )
-    add_math_equation(doc, omml_rnn, eq_label="Eq. 8.1", img_path="graphs/equations/eq_rnn_cell.png", img_width=3.6)
+    add_math_equation(doc, eq_label="Eq. 8.1", img_path="graphs/equations/eq_rnn_cell.png", img_width=3.8)
 
     add_body_p(doc,
         "Here, W_ih represents the input-to-hidden weight matrix, W_hh represents the hidden-to-hidden recurrence matrix, "
@@ -721,36 +680,13 @@ def build_report():
         "computes normalized class probability distribution:"
     )
 
-    # OMML Math: Softmax Probability
-    omml_softmax = (
-        '<m:r><m:t>P(y = c | X) = </m:t></m:r>'
-        '<m:f>'
-        '<m:num>'
-        '<m:sSup><m:e><m:r><m:t>e</m:t></m:r></m:e><m:sup><m:sSub><m:e><m:r><m:t>z</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub></m:sup></m:sSup>'
-        '</m:num>'
-        '<m:den>'
-        '<m:d><m:e>'
-        '<m:r><m:t>Σ </m:t></m:r>'
-        '<m:sSup><m:e><m:r><m:t>e</m:t></m:r></m:e><m:sup><m:sSub><m:e><m:r><m:t>z</m:t></m:r></m:e><m:sub><m:r><m:t>j</m:t></m:r></m:sub></m:sSub></m:sup></m:sSup>'
-        '</m:e></m:d>'
-        '</m:den>'
-        '</m:f>'
-    )
-    add_math_equation(doc, omml_softmax, eq_label="Eq. 8.2", img_path="graphs/equations/eq_softmax.png", img_width=2.5)
+    add_math_equation(doc, eq_label="Eq. 8.2", img_path="graphs/equations/eq_softmax.png", img_width=2.6)
 
     add_body_p(doc,
         "The network parameters are optimized using Categorical Cross-Entropy Loss (L) over all C = 3 congestion classes:"
     )
 
-    # OMML Math: Loss Function
-    omml_loss = (
-        '<m:r><m:t>L = - Σ </m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>y</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t> · log(</m:t></m:r>'
-        '<m:sSub><m:e><m:r><m:t>ŷ</m:t></m:r></m:e><m:sub><m:r><m:t>c</m:t></m:r></m:sub></m:sSub>'
-        '<m:r><m:t>)</m:t></m:r>'
-    )
-    add_math_equation(doc, omml_loss, eq_label="Eq. 8.3", img_path="graphs/equations/eq_loss.png", img_width=2.2)
+    add_math_equation(doc, eq_label="Eq. 8.3", img_path="graphs/equations/eq_loss.png", img_width=2.4)
 
     add_heading_2(doc, "Phase 5: Real-Time API Inference & Client Rendering")
     add_body_p(doc,
@@ -879,27 +815,13 @@ def build_report():
         "Classification Accuracy measures the proportion of total correct congestion category predictions across all classes:"
     )
 
-    omml_acc = (
-        '<m:r><m:t>Accuracy = </m:t></m:r>'
-        '<m:f>'
-        '<m:num><m:r><m:t>TP + TN</m:t></m:r></m:num>'
-        '<m:den><m:r><m:t>TP + TN + FP + FN</m:t></m:r></m:den>'
-        '</m:f>'
-    )
-    add_math_equation(doc, omml_acc, eq_label="Eq. 14.1", img_path="graphs/equations/eq_accuracy.png", img_width=2.5)
+    add_math_equation(doc, eq_label="Eq. 14.1", img_path="graphs/equations/eq_accuracy.png", img_width=2.8)
 
     add_body_p(doc,
         "The harmonic mean between Precision and Recall is quantified using the macro F1-Score:"
     )
 
-    omml_f1 = (
-        '<m:r><m:t>F1-Score = 2 · </m:t></m:r>'
-        '<m:f>'
-        '<m:num><m:r><m:t>Precision · Recall</m:t></m:r></m:num>'
-        '<m:den><m:r><m:t>Precision + Recall</m:t></m:r></m:den>'
-        '</m:f>'
-    )
-    add_math_equation(doc, omml_f1, eq_label="Eq. 14.2", img_path="graphs/equations/eq_f1.png", img_width=2.8)
+    add_math_equation(doc, eq_label="Eq. 14.2", img_path="graphs/equations/eq_f1.png", img_width=3.0)
 
     add_heading_2(doc, "14.2 Classification Performance Summary")
     res_headers = ["Congestion Class", "Precision", "Recall", "F1-Score", "Support"]
