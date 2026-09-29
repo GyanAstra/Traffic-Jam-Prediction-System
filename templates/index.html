@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrafficAI · Highway Congestion Forecast</title>
+  <meta name="description" content="Predict highway congestion (Low, Medium, or High traffic) on Interstate 94 with a recurrent neural network trained on real hourly traffic telemetry." />
+
+  <!-- Google Font: Plus Jakarta Sans for warm, modern, approachable typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <a href="#" class="nav-brand">
+      <div class="brand-icon">🚦</div>
+      <div class="brand-title">Traffic<span>AI</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#simulator-section">Forecast Tool</a></li>
+      <li><a href="#evaluation-section">Model Insights</a></li>
+      <li><a href="#architecture-section">Architecture</a></li>
+    </ul>
+    <div class="nav-status-badge">
+      <span class="pulse-dot"></span>
+      <span>I-94 Model Online</span>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-pill">
+      <span>📍</span>
+      <span>Trained on 48,204 Real I-94 Highway Records</span>
+    </div>
+    <h1>Predict Traffic Flow Before You Drive</h1>
+    <p>
+      An intelligent recurrent neural network that estimates congestion levels on Minnesota's Interstate 94 corridor using real temporal sequences and weather conditions.
+    </p>
+
+    <!-- Quick Scenario Presets -->
+    <div class="preset-bar">
+      <button class="preset-chip active" id="demo-rush" onclick="fillDemo('rush')">
+        <span>🌅</span> Morning Rush (8 AM Mon)
+      </button>
+      <button class="preset-chip" id="demo-rain" onclick="fillDemo('rain')">
+        <span>🌧️</span> Rainy Evening (5 PM Thu)
+      </button>
+      <button class="preset-chip" id="demo-night" onclick="fillDemo('night')">
+        <span>🌙</span> Late Night (2 AM Sat)
+      </button>
+      <button class="preset-chip" id="demo-snow" onclick="fillDemo('snow')">
+        <span>❄️</span> Winter Blizzard (-8°C Snow)
+      </button>
+    </div>
+  </section>
+
+  <!-- Main Workspace -->
+  <main class="container" id="simulator-section">
+
+    <div class="alert-banner" id="model-banner">
+      ⚠️ Model checkpoint not found. Please run <code>python train_model.py</code> in your project directory.
+    </div>
+
+    <div class="dashboard-grid">
+
+      <!-- LEFT: The Simulator Form -->
+      <section class="warm-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon">🎛️</div>
+            <div>
+              <h2 class="card-title">Travel Parameters</h2>
+              <div class="card-subtitle">Adjust time, weather, and calendar conditions</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="traffic-form" onsubmit="return false;">
+
+          <!-- Time of Day -->
+          <div class="input-block">
+            <div class="label-row">
+              <label for="hour" class="field-label">Time of Departure</label>
+              <span class="field-hint" id="hour_display">8:00 AM (Morning Peak)</span>
+            </div>
+            <div class="range-container">
+              <input type="range" id="hour" min="0" max="23" value="8" step="1" />
+            </div>
+          </div>
+
+          <!-- Day of Week (Tactile Pills) -->
+          <div class="input-block">
+            <div class="label-row">
+              <span class="field-label">Day of the Week</span>
+              <span class="field-hint" id="weekend_badge">Weekday Flow</span>
+            </div>
+            <div class="day-pills">
+              <div class="day-pill active" data-day="0">Mon</div>
+              <div class="day-pill" data-day="1">Tue</div>
+              <div class="day-pill" data-day="2">Wed</div>
+              <div class="day-pill" data-day="3">Thu</div>
+              <div class="day-pill" data-day="4">Fri</div>
+              <div class="day-pill" data-day="5">Sat</div>
+              <div class="day-pill" data-day="6">Sun</div>
+            </div>
+            <input type="hidden" id="day_of_week" value="0" />
+            <input type="hidden" id="is_weekend" value="0" />
+          </div>
+
+          <!-- Weather Conditions (Visual Chips) -->
+          <div class="input-block">
+            <div class="label-row">
+              <span class="field-label">Current Weather</span>
+              <span class="field-hint" id="weather_label">Clear Sky</span>
+            </div>
+            <div class="weather-grid">
+              <div class="weather-chip active" data-weather="0">
+                <span class="icon">☀️</span>
+                <span>Clear</span>
+              </div>
+              <div class="weather-chip" data-weather="1">
+                <span class="icon">⛅</span>
+                <span>Cloudy</span>
+              </div>
+              <div class="weather-chip" data-weather="2">
+                <span class="icon">🌧️</span>
+                <span>Rainy</span>
+              </div>
+              <div class="weather-chip" data-weather="3">
+                <span class="icon">❄️</span>
+                <span>Snow</span>
+              </div>
+              <div class="weather-chip" data-weather="4">
+                <span class="icon">🌫️</span>
+                <span>Fog/Mist</span>
+              </div>
+            </div>
+            <input type="hidden" id="weather_code" value="0" />
+          </div>
+
+          <!-- Month & Temperature in 2 Columns -->
+          <div class="two-cols">
+            <div class="input-block">
+              <div class="label-row">
+                <label for="month" class="field-label">Season / Month</label>
+              </div>
+              <select id="month">
+                <option value="1">January (Winter)</option>
+                <option value="2">February (Winter)</option>
+                <option value="3">March (Spring)</option>
+                <option value="4">April (Spring)</option>
+                <option value="5">May (Spring)</option>
+                <option value="6">June (Summer)</option>
+                <option value="7">July (Summer)</option>
+                <option value="8">August (Summer)</option>
+                <option value="9" selected>September (Autumn)</option>
+                <option value="10">October (Autumn)</option>
+                <option value="11">November (Late Fall)</option>
+                <option value="12">December (Winter)</option>
+              </select>
+            </div>
+
+            <div class="input-block">
+              <div class="label-row">
+                <label for="temp_c" class="field-label">Temperature</label>
+                <span class="field-hint" id="temp_c_val">18°C</span>
+              </div>
+              <div class="range-container" style="margin-top: 10px;">
+                <input type="range" id="temp_c" min="-30" max="40" value="18" step="1" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Rain & Cloud Cover in 2 Columns -->
+          <div class="two-cols">
+            <div class="input-block">
+              <div class="label-row">
+                <label for="rain_1h" class="field-label">Rainfall (mm/h)</label>
+                <span class="field-hint" id="rain_1h_val">0 mm</span>
+              </div>
+              <div class="range-container">
+                <input type="range" id="rain_1h" min="0" max="50" value="0" step="0.5" />
+              </div>
+            </div>
+
+            <div class="input-block">
+              <div class="label-row">
+                <label for="clouds_all" class="field-label">Cloud Cover</label>
+                <span class="field-hint" id="clouds_all_val">20%</span>
+              </div>
+              <div class="range-container">
+                <input type="range" id="clouds_all" min="0" max="100" value="20" step="5" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Public Holiday Toggle -->
+          <div class="input-block">
+            <div class="label-row">
+              <span class="field-label">Public Holiday Schedule</span>
+              <span class="field-hint" id="holiday_hint">Standard Schedule</span>
+            </div>
+            <div class="toggle-switch-group">
+              <button type="button" class="toggle-switch-btn active" id="btn-holiday-no" onclick="setHoliday(0)">
+                Regular Day
+              </button>
+              <button type="button" class="toggle-switch-btn" id="btn-holiday-yes" onclick="setHoliday(1)">
+                Public Holiday
+              </button>
+            </div>
+            <input type="hidden" id="holiday_flag" value="0" />
+          </div>
+
+          <!-- Predict Action Button -->
+          <button class="btn-predict" id="predict-btn" type="button">
+            <span>✨</span>
+            <span>Predict Traffic Conditions</span>
+          </button>
+
+          <!-- Loading Spinner -->
+          <div class="spinner-container" id="spinner">
+            <div class="spinner"></div>
+            <span>Evaluating 24-hour sequence with RNN…</span>
+          </div>
+
+        </form>
+      </section>
+
+
+      <!-- RIGHT: Live Diagnosis & Forecast Panel -->
+      <section class="warm-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon">📊</div>
+            <div>
+              <h2 class="card-title">Forecast & Diagnosis</h2>
+              <div class="card-subtitle">Real-time recurrent classification</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div id="result-placeholder" style="text-align: center; padding: 36px 12px; color: var(--text-muted);">
+          <div style="font-size: 2.4rem; margin-bottom: 12px; opacity: 0.85;">🧭</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 1.05rem; margin-bottom: 4px;">Ready to Analyze</div>
+          <p style="font-size: 0.88rem; max-width: 280px; margin: 0 auto;">Select your departure conditions or pick a quick scenario, then click <strong>Predict Traffic Conditions</strong>.</p>
+        </div>
+
+        <!-- Populated Result Content -->
+        <div class="result-box" id="result-card">
+
+          <!-- Primary Traffic Banner -->
+          <div class="traffic-status-banner low" id="status-banner">
+            <div class="traffic-badge" id="result-badge">
+              <span>●</span>
+              <span>Low Congestion</span>
+            </div>
+            <div class="traffic-headline" id="result-headline">Highway Flowing Freely</div>
+            <div class="traffic-description" id="result-description">
+              Optimal travel conditions with minimal delays. Vehicles moving at normal corridor speeds.
+            </div>
+          </div>
+
+          <!-- Model Confidence Meter -->
+          <div class="confidence-container">
+            <div class="confidence-header">
+              <span>Model Confidence</span>
+              <span id="conf-pct">94.5%</span>
+            </div>
+            <div class="confidence-meter">
+              <div class="confidence-fill" id="confidence-fill" style="width: 94.5%;"></div>
+            </div>
+          </div>
+
+          <!-- Probabilities Cards -->
+          <div class="prob-breakdown-grid">
+            <div class="prob-card low">
+              <div class="pct" id="prob-low">78%</div>
+              <div class="title">🟢 Low Flow</div>
+            </div>
+            <div class="prob-card medium">
+              <div class="pct" id="prob-medium">19%</div>
+              <div class="title">🟡 Medium</div>
+            </div>
+            <div class="prob-card high">
+              <div class="pct" id="prob-high">3%</div>
+              <div class="title">🔴 High Jam</div>
+            </div>
+          </div>
+
+          <!-- Live Chart.js Doughnut -->
+          <div class="chart-box">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">Probability Breakdown</div>
+            <div class="chart-wrapper">
+              <canvas id="probChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Dynamic Advice Box -->
+          <div class="advice-box" id="advice-box">
+            <strong>💡 Travel Recommendation</strong>
+            <span id="advice-text">Great time to travel! Highways are flowing smoothly with no expected bottlenecks.</span>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div><!-- /dashboard-grid -->
+
+
+    <!-- MODEL EVALUATION & GRAPHS SECTION -->
+    <section id="evaluation-section">
+      <div class="section-heading-wrap">
+        <h2>Model Evaluation & Training Telemetry</h2>
+        <p>Real performance curves generated during training on 48,204 observations from the I-94 interstate dataset.</p>
+      </div>
+
+      <div class="graphs-row">
+        <!-- Accuracy -->
+        <div class="graph-display-card">
+          <img id="graph-accuracy" src="/static/graphs/accuracy.png" alt="Training & Validation Accuracy" loading="lazy" />
+          <div class="graph-caption">Accuracy Curve</div>
+          <div class="graph-subcaption">Training vs. Validation across epochs</div>
+        </div>
+
+        <!-- Loss -->
+        <div class="graph-display-card">
+          <img id="graph-loss" src="/static/graphs/loss.png" alt="Training & Validation Loss" loading="lazy" />
+          <div class="graph-caption">Loss Convergence</div>
+          <div class="graph-subcaption">Categorical crossentropy minimization</div>
+        </div>
+
+        <!-- Confusion Matrix -->
+        <div class="graph-display-card">
+          <img id="graph-confusion" src="/static/graphs/confusion_matrix.png" alt="Confusion Matrix" loading="lazy" />
+          <div class="graph-caption">Confusion Matrix</div>
+          <div class="graph-subcaption">Per-class accuracy for Low, Medium, and High</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ARCHITECTURE PIPELINE EXPLAINER -->
+    <section id="architecture-section">
+      <div class="section-heading-wrap">
+        <h2>Sequential RNN Architecture</h2>
+        <p>How the recurrent neural network processes sequential traffic dynamics to classify future congestion.</p>
+      </div>
+
+      <div class="arch-grid">
+        <div class="arch-node">
+          <div class="arch-icon">📥</div>
+          <div class="arch-name">Input Layer</div>
+          <div class="arch-spec">9 Features × 24 Timesteps</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-icon">🔄</div>
+          <div class="arch-name">Recurrent Block 1</div>
+          <div class="arch-spec">SimpleRNN (64 Units) + Dropout</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-icon">⚡</div>
+          <div class="arch-name">Recurrent Block 2</div>
+          <div class="arch-spec">SimpleRNN (32 Units) + Dense (16)</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-icon">🎯</div>
+          <div class="arch-name">Softmax Output</div>
+          <div class="arch-spec">3 Congestion Classes</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      <strong>Traffic Jam Prediction Using Recurrent Neural Networks (RNN)</strong> · 
+      College Project for AI with Python Training · 
+      Dataset: <a href="https://archive.ics.uci.edu/dataset/492/metro+interstate+traffic+volume" target="_blank" rel="noopener">Metro Interstate Traffic Volume (UCI ML Repository)</a>
+    </p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
